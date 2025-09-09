@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "concurrently \"pnpm --filter server dev\" \"pnpm --filter frontend dev\"",
     "start": "pnpm --filter server start",
-    "build": "pnpm --filter frontend build && pnpm --filter server build"
+    "build": "pnpm --filter frontend build && pnpm --filter server build",
+    "postinstall": "cd frontend && pnpm install && cd ../server && pnpm install"
   }
 }
