@@ -37,7 +37,7 @@ const DeveloperShowcase: React.FC = () => {
   const [currentProjectFilter, setCurrentProjectFilter] = useState("all");
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [currentlyLearning, setCurrentlyLearning] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
 
   const fullText = `const developer = {
   name: "Isak Grönlund",
