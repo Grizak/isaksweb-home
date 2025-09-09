@@ -1,4 +1,5 @@
 import express from "express";
+import path from "path";
 
 interface Project {
   id: number;
@@ -30,6 +31,10 @@ app.get("/api/data", (req, res) => {
     skills: [],
   };
   res.json(JsonResponse);
+});
+
+app.use((req, res) => {
+  res.sendFile(path.join(process.cwd(), "frontend", "index.html"))
 });
 
 app.listen(PORT, () => {
