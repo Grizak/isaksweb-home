@@ -20,6 +20,8 @@ interface Skill {
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 
+app.use(express.static(path.join(process.cwd(), "frontend")));
+
 app.get("/api/data", (req, res) => {
   const JsonResponse: {
     currentlyLearning: string[];
