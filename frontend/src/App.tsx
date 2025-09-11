@@ -135,12 +135,34 @@ const DeveloperShowcase: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const filteredProjects =
-    currentProjectFilter === "all"
-      ? projects
-      : projects.filter((p) =>
-          p.tech.some((t) => t.toLowerCase().includes(currentProjectFilter))
-        );
+  const filteredProjects = useMemo(() => {
+    if (currentProjectFilter === "all") {
+      return projects;
+    }
+    
+    return projects.filter((project) =>
+      project.tech.some((tech) => 
+        tech.toLowerCase() === currentProjectFilter.toLowerCase()
+      )
+    );
+  }, [projects, currentProjectFilter]);
+
+// Better tech filter generation from actual project data
+useEffect(() => {
+  if (projects.length > 0) {
+    // Extract unique technologies from all projects
+    const uniqueTechs = Array.from(
+      new Set(
+        projects.flatMap(project => 
+          project.tech.map(tech => tech.toLowerCase())
+        )
+      )
+    ).sort();
+    
+    // Add "all" as first option and update techs
+    setTechs(["all", ...uniqueTechs]);
+  }
+}, [projects]);
 
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light");
