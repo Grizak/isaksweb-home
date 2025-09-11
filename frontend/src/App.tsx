@@ -126,44 +126,41 @@ const DeveloperShowcase: React.FC = () => {
     let isCancelled = false;
   
     const typeChar = () => {
-      if (isCancelled) return;
+      if (isCancelled || i >= fullText.length) return;
   
-      if (i < fullText.length) {
-        // Simulate rare mistake (backspace + retry)
-        if (Math.random() < 0.01 && i > 2) {
-          setTypedText((prev) => prev.slice(0, -1));
-          i--;
-          setTimeout(typeChar, 200 + Math.random() * 200);
-          return;
-        }
-  
-        setTypedText((prev) => prev + fullText[i]);
-        i++;
-  
-        // Base typing delay
-        let delay = 30 + Math.random() * 100;
-  
-        // Add longer pause at punctuation
-        if ([",", ".", ";", ":", "?", "!"].includes(fullText[i - 1])) {
-          delay = 250 + Math.random() * 300;
-        }
-  
-        // Burst typing (clusters)
-        if (i % (Math.floor(Math.random() * 5) + 3) === 0) {
-          delay = 150 + Math.random() * 200;
-        }
-  
-        setTimeout(typeChar, delay);
+      // Simulate rare mistake (backspace + retry)
+      if (Math.random() < 0.01 && i > 0) {
+        setTypedText((prev) => prev.slice(0, -1));
+        i--; // move cursor back
+        setTimeout(typeChar, 250 + Math.random() * 200);
+        return;
       }
+  
+      setTypedText((prev) => prev + fullText[i]);
+      i++;
+  
+      // Base typing delay
+      let delay = 30 + Math.random() * 100;
+  
+      // Longer pause at punctuation
+      if ([",", ".", ";", ":", "?", "!"].includes(fullText[i - 1])) {
+        delay = 250 + Math.random() * 300;
+      }
+  
+      // Burst typing (clusters)
+      if (i % (Math.floor(Math.random() * 5) + 3) === 0) {
+        delay = 150 + Math.random() * 200;
+      }
+  
+      setTimeout(typeChar, delay);
     };
   
     typeChar();
   
     return () => {
-      isCancelled = true; // cleanup when unmounted
+      isCancelled = true; // cleanup
     };
   }, [fullText]);
-
 
   const filteredProjects = useMemo(() => {
     if (currentProjectFilter === "all") {
