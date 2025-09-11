@@ -94,9 +94,9 @@ const DeveloperShowcase: React.FC = () => {
         setError("Unexpected error occurred when loading page");
         return;
       }
-      setSkills(res.data.skills);
-      setCurrentlyLearning(res.data.currentlyLearning);
-      setProjects(res.data.projects);
+      setSkills(res.data.skills === [] ? skills : res.data.skills);
+      setCurrentlyLearning(res.data.currentlyLearning === [] ? currentlyLearning : res.data.currentlyLearning);
+      setProjects(res.data.projects === [] ? projects : res.data.projects);
     })();
   });
 
