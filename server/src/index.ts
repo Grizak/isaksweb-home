@@ -134,6 +134,28 @@ interface GitHubRepository {
 
 type GithubRepositoriesResponse = GitHubRepository[];
 
+async function fetchAllRepos (username: string) {
+  const repos = [];
+  let page = 1;
+  const perPage = 100;
+
+  while (true) {
+    const url = `https://api.github.com/users/${username}/repos?per_page=${perPage}&page=${page}`;
+    const {data} = await axios.get<GithubRepositoriesResponse>(url);
+
+    repos.push(...data);
+
+    if (data.length < perPage) {
+      // No more pages
+      break;
+    }
+
+    page++
+  }
+
+  return repos;
+}
+
 // ---------------- Data ----------------
 
 const projectsFromGithub: Project[] = [];
@@ -144,12 +166,10 @@ let nextId = 1; // numeric ID generator
 
 async function loadProjects() {
   try {
-    const res = await axios.get<GithubRepositoriesResponse>(
-      "https://api.github.com/users/Grizak/repos"
-    );
+    const repos = await fetchAllRepos("Grizak");
 
-    if (res.data) {
-      res.data.forEach((repo) => {
+    if (repos) {
+      repos.forEach((repo) => {
         const newProject: Project = {
           id: nextId++,
           title: repo.name,
