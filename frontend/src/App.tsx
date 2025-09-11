@@ -39,7 +39,7 @@ const DeveloperShowcase: React.FC = () => {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [currentlyLearning, setCurrentlyLearning] = useState<string[]>([]);
   const [, setError] = useState<string | null>(null);
-  const [techs, setTechs = useState<string[]>(["all", "react", "typescript", "node"]);
+  const [techs, setTechs] = useState<string[]>(["all", "react", "typescript", "node"]);
 
   const fullText = `const developer = {
   name: "Isak Grönlund",
