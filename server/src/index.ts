@@ -159,7 +159,7 @@ async function fetchAllRepos(username: string): Promise<GitHubRepository[]> {
 // ---------------- Data ----------------
 
 const projectsFromGithub: Project[] = [];
-const techs: string[] = [];
+const techs: string[] = ["all"];
 let nextId = 1; // numeric ID generator
 
 // ---------------- Initialization ----------------
