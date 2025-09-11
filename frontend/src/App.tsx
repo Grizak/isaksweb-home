@@ -89,16 +89,32 @@ const DeveloperShowcase: React.FC = () => {
 
   useEffect(() => {
     (async () => {
-      const res = await axios.get<BackendResponse>("/api/data");
-      if (!(res.status === 200)) {
-        setError("Unexpected error occurred when loading page");
-        return;
+      try {
+        const res = await axios.get<BackendResponse>("/api/data");
+        
+        if (res.status !== 200) {
+          setError("Unexpected error occurred when loading page");
+          return;
+        }
+        
+        // Only update if we have data, otherwise keep existing state
+        if (res.data.skills && res.data.skills.length > 0) {
+          setSkills(res.data.skills);
+        }
+        
+        if (res.data.currentlyLearning && res.data.currentlyLearning.length > 0) {
+          setCurrentlyLearning(res.data.currentlyLearning);
+        }
+        
+        if (res.data.projects && res.data.projects.length > 0) {
+          setProjects(res.data.projects);
+        }
+        
+      } catch (error) {
+        setError("Failed to load data");
       }
-      setSkills(res.data.skills === [] ? skills : res.data.skills);
-      setCurrentlyLearning(res.data.currentlyLearning === [] ? currentlyLearning : res.data.currentlyLearning);
-      setProjects(res.data.projects === [] ? projects : res.data.projects);
     })();
-  });
+  }, []); // Empty dependency array - runs once on mount
 
   useEffect(() => {
     let i = 0;
