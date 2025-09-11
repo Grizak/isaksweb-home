@@ -30,6 +30,7 @@ interface BackendResponse {
   currentlyLearning: string[];
   projects: Project[];
   skills: Skill[];
+  techs: string[];
 }
 
 const DeveloperShowcase: React.FC = () => {
@@ -38,6 +39,7 @@ const DeveloperShowcase: React.FC = () => {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [currentlyLearning, setCurrentlyLearning] = useState<string[]>([]);
   const [, setError] = useState<string | null>(null);
+  const [techs, setTechs = useState<string[]>(["all", "react", "typescript", "node"]);
 
   const fullText = `const developer = {
   name: "Isak Grönlund",
@@ -109,7 +111,10 @@ const DeveloperShowcase: React.FC = () => {
         if (res.data.projects && res.data.projects.length > 0) {
           setProjects(res.data.projects);
         }
-        
+
+        if (res.data.techs && res.data.techs.length > 0) {
+          setTechs(res.data.techs);
+        }
       } catch (error) {
         setError("Failed to load data");
       }
