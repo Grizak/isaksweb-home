@@ -336,7 +336,7 @@ const DeveloperShowcase: React.FC = () => {
           </h2>
           <div className="flex justify-center mb-8">
             <div className="flex gap-2 p-1 bg-gray-800 rounded-lg">
-              {["all", "react", "typescript", "node"].map((filter) => (
+              {techs.map((filter) => (
                 <button
                   key={filter}
                   onClick={() => setCurrentProjectFilter(filter)}
