@@ -134,14 +134,14 @@ interface GitHubRepository {
 
 type GithubRepositoriesResponse = GitHubRepository[];
 
-async function fetchAllRepos (username: string) {
-  const repos = [];
+async function fetchAllRepos(username: string): Promise<GitHubRepository[]> {
+  const repos: GitHubRepository[] = [];
   let page = 1;
   const perPage = 100;
 
   while (true) {
     const url = `https://api.github.com/users/${username}/repos?per_page=${perPage}&page=${page}`;
-    const {data} = await axios.get<GithubRepositoriesResponse>(url);
+    const { data } = await axios.get<GithubRepositoriesResponse>(url);
 
     repos.push(...data);
 
@@ -150,7 +150,7 @@ async function fetchAllRepos (username: string) {
       break;
     }
 
-    page++
+    page++;
   }
 
   return repos;
@@ -164,7 +164,7 @@ let nextId = 1; // numeric ID generator
 
 // ---------------- Initialization ----------------
 
-async function loadProjects() {
+async function loadProjects(): Promise<void> {
   try {
     const repos = await fetchAllRepos("Grizak");
 
@@ -179,7 +179,9 @@ async function loadProjects() {
           featured: false,
         };
         projectsFromGithub.push(newProject);
-        if (!techs.includes(repo.language)) {
+        
+        // Fix: Check if language exists and isn't already in techs array
+        if (repo.language && !techs.includes(repo.language)) {
           techs.push(repo.language);
         }
       });
