@@ -1,12 +1,13 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import path from "path";
 import axios from "axios";
-import crypto from "crypto";
+
+// ---------------- Interfaces ----------------
 
 interface Project {
   id: number;
   title: string;
-  description: string;
+  description: string | null;
   tech: string[];
   demoUrl?: string;
   sourceUrl?: string;
@@ -96,9 +97,9 @@ interface GitHubRepository {
   labels_url: string;
   releases_url: string;
   deployments_url: string;
-  created_at: string; // ISO 8601 date string
-  updated_at: string; // ISO 8601 date string
-  pushed_at: string; // ISO 8601 date string
+  created_at: string;
+  updated_at: string;
+  pushed_at: string;
   git_url: string;
   ssh_url: string;
   clone_url: string;
@@ -131,32 +132,47 @@ interface GitHubRepository {
   default_branch: string;
 }
 
-type GithubRepositoriesResponse = GithubRepository[];
+type GithubRepositoriesResponse = GitHubRepository[];
 
-const projectsFromGithub = [];
+// ---------------- Data ----------------
 
-const res = await axios.get<GithubRepositoriesResponse>("https://api.github.com/users/Grizak/repos");
+const projectsFromGithub: Project[] = [];
+let nextId = 1; // numeric ID generator
 
-if (res.data) {
-  res.data.forEach((repo) => {
-    const newProject: Project = {
-      id: crypto.randomUUID(),
-      title: repo.name,
-      description: repo.description,
-      tech: [repo.language],
-      sourceUrl: repo.html_url,
-      featured: false,
+// ---------------- Initialization ----------------
+
+async function loadProjects() {
+  try {
+    const res = await axios.get<GithubRepositoriesResponse>(
+      "https://api.github.com/users/Grizak/repos"
+    );
+
+    if (res.data) {
+      res.data.forEach((repo) => {
+        const newProject: Project = {
+          id: nextId++,
+          title: repo.name,
+          description: repo.description,
+          tech: repo.language ? [repo.language] : [],
+          sourceUrl: repo.html_url,
+          featured: false,
+        };
+        projectsFromGithub.push(newProject);
+      });
     }
-    projectsFromGithub.push(newProject);
-  })
-};
+  } catch (error) {
+    console.error("Failed to fetch GitHub repositories:", error);
+  }
+}
+
+// ---------------- Express ----------------
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 
 app.use(express.static(path.join(process.cwd(), "frontend")));
 
-app.get("/api/data", (req, res) => {
+app.get("/api/data", (req: Request, res: Response) => {
   const JsonResponse: {
     currentlyLearning: string[];
     projects: Project[];
@@ -169,10 +185,14 @@ app.get("/api/data", (req, res) => {
   res.json(JsonResponse);
 });
 
-app.use((req, res) => {
-  res.sendFile(path.join(process.cwd(), "frontend", "index.html"))
+app.use((req: Request, res: Response) => {
+  res.sendFile(path.join(process.cwd(), "frontend", "index.html"));
 });
 
-app.listen(PORT, () => {
-  console.log(`Express app listening on port ${PORT}`);
+// ---------------- Start ----------------
+
+loadProjects().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Express app listening on port ${PORT}`);
+  });
 });
