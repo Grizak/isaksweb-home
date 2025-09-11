@@ -157,7 +157,7 @@ const DeveloperShowcase: React.FC = () => {
             </button>
           )}
           {project.sourceUrl && (
-            <button className="text-gray-400 hover:text-green-400 transition-colors cursor-pointer" onClick={() => project.sourceUrl && window.open(project.sourceUrl, "_blank"}>
+            <button className="text-gray-400 hover:text-green-400 transition-colors cursor-pointer" onClick={() => project.sourceUrl && window.open(project.sourceUrl, "_blank")}>
               <Github className="w-5 h-5" />
             </button>
           )}
