@@ -247,6 +247,12 @@ useEffect(() => {
               Skills
             </a>
             <a
+              href="#learning"
+              className="text-gray-300 hover:text-white transition-colors"
+            >
+              Currently Learning
+            </a>
+            <a
               href="#contact"
               className="text-gray-300 hover:text-white transition-colors"
             >
@@ -382,7 +388,7 @@ useEffect(() => {
       </section>
 
       {/* Currently Learning */}
-      <section className="py-20 px-4 bg-gray-800">
+      <section id="learning" className="py-20 px-4 bg-gray-800">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-8">Currently Exploring</h2>
           <div className="flex justify-center gap-6 flex-wrap">
