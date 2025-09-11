@@ -152,12 +152,12 @@ const DeveloperShowcase: React.FC = () => {
         <h3 className="text-xl font-semibold text-white">{project.title}</h3>
         <div className="flex gap-2">
           {project.demoUrl && (
-            <button className="text-gray-400 hover:text-blue-400 transition-colors cursor-pointer" onClick={() => {window.location.href = project.demoUrl || ""}}>
+            <button className="text-gray-400 hover:text-blue-400 transition-colors cursor-pointer" onClick={() => project.demoUrl && window.open(project.demoUrl, "_blank")}>
               <ExternalLink className="w-5 h-5" />
             </button>
           )}
           {project.sourceUrl && (
-            <button className="text-gray-400 hover:text-green-400 transition-colors cursor-pointer" onClick={() => {window.location.href = project.sourceUrl || ""}}>
+            <button className="text-gray-400 hover:text-green-400 transition-colors cursor-pointer" onClick={() => project.sourceUrl && window.open(project.sourceUrl, "_blank"}>
               <Github className="w-5 h-5" />
             </button>
           )}
