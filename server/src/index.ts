@@ -137,6 +137,7 @@ type GithubRepositoriesResponse = GitHubRepository[];
 // ---------------- Data ----------------
 
 const projectsFromGithub: Project[] = [];
+const techs = string[] = [];
 let nextId = 1; // numeric ID generator
 
 // ---------------- Initialization ----------------
@@ -158,6 +159,9 @@ async function loadProjects() {
           featured: false,
         };
         projectsFromGithub.push(newProject);
+        if (!techs.includes(repo.language)) {
+          techs.push(repo.language);
+        }
       });
     }
   } catch (error) {
@@ -177,10 +181,12 @@ app.get("/api/data", (req: Request, res: Response) => {
     currentlyLearning: string[];
     projects: Project[];
     skills: Skill[];
+    techs: string[];
   } = {
     currentlyLearning: ["Typescript", "React", "TailwindCSS"],
     projects: [...projectsFromGithub],
     skills: [],
+    techs,
   };
   res.json(JsonResponse);
 });
