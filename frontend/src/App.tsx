@@ -306,7 +306,9 @@ useEffect(() => {
               </div>
               <pre className="text-green-400 leading-relaxed">
                 {typedText}
-                <span className="animate-pulse">|</span>
+                <span className="inline-block w-2 h-5 bg-green-400 ml-1 animate-pulse opacity-75">
+                  |
+                </span>
               </pre>
             </div>
           </div>
