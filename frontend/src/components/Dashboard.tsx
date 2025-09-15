@@ -20,7 +20,7 @@ interface Project {
   id: number;
   title: string;
   description: string | null;
-  tech: string[];
+  tech: string; // changed from string[] to string
   demoUrl?: string;
   sourceUrl?: string;
   featured: boolean;
@@ -60,16 +60,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBackToPortfolio }) => {
   const [newProject, setNewProject] = useState<Partial<Project>>({
     title: "",
     description: "",
-    tech: [],
+    tech: "", // changed from [] to ""
     demoUrl: "",
     sourceUrl: "",
     featured: false,
   });
   const [showNewProjectForm, setShowNewProjectForm] = useState(false);
+  // Add a state to hold the tech input string for editing
+  const [editingTechInput, setEditingTechInput] = useState<string>("");
 
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  // When starting to edit a project, initialize editingTechInput
+  useEffect(() => {
+    if (editingProject) {
+      setEditingTechInput(editingProject.tech); // now just the raw string
+    }
+  }, [editingProject]);
 
   const fetchDashboardData = async () => {
     try {
@@ -87,37 +96,70 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBackToPortfolio }) => {
   };
 
   const updateProject = async (project: Project) => {
+    // Ensure editingTechInput is a string before splitting
+    const techString =
+      typeof editingTechInput === "string" ? editingTechInput : "";
+    const updatedProject = {
+      ...project,
+      tech: techString, // keep as string in state
+      techArray: techString
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0),
+    };
     try {
-      await axios.put(`/api/dashboard/projects/${project.id}`, project);
+      await axios.put(`/api/dashboard/projects/${project.id}`, {
+        ...updatedProject,
+        tech: updatedProject.techArray, // send as array to backend
+      });
       setData((prev) =>
         prev
           ? {
               ...prev,
               projects: prev.projects.map((p) =>
-                p.id === project.id ? project : p
+                p.id === project.id
+                  ? { ...updatedProject, tech: techString }
+                  : p
               ),
             }
           : null
       );
-      setEditingProject(null);
     } catch (error) {
       console.error("Failed to update project:", error);
+    } finally {
+      setEditingProject(null);
     }
   };
 
   const addProject = async () => {
+    // Convert tech string to array before sending
+    const techArray = newProject.tech
+      ? newProject.tech
+          .split(",")
+          .map((t) => t.trim())
+          .filter((t) => t.length > 0)
+      : [];
     try {
-      const response = await axios.post("/api/dashboard/projects", newProject);
+      const response = await axios.post("/api/dashboard/projects", {
+        ...newProject,
+        tech: techArray, // send as array to backend
+      });
       if (data) {
         setData({
           ...data,
-          projects: [...data.projects, response.data.project],
+          projects: [
+            ...data.projects,
+            {
+              ...response.data.project,
+              tech: newProject.tech || "",
+            },
+          ],
         });
       }
       setNewProject({
         title: "",
         description: "",
-        tech: [],
+        tech: "",
         demoUrl: "",
         sourceUrl: "",
         featured: false,
@@ -296,9 +338,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBackToPortfolio }) => {
                     >
                       <div>
                         <p className="font-medium">{project.title}</p>
-                        <p className="text-sm text-gray-400">
-                          {project.tech.join(", ")}
-                        </p>
+                        <p className="text-sm text-gray-400">{project.tech}</p>
                       </div>
                       {project.featured && (
                         <Star className="w-4 h-4 text-yellow-400" />
@@ -357,14 +397,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBackToPortfolio }) => {
                   <input
                     type="text"
                     placeholder="Technologies (comma-separated)"
-                    value={newProject.tech?.join(", ")}
+                    value={newProject.tech || ""}
                     onChange={(e) =>
                       setNewProject({
                         ...newProject,
-                        tech: e.target.value
-                          .split(",")
-                          .map((t) => t.trim())
-                          .filter((t) => t),
+                        tech: e.target.value,
                       })
                     }
                     className="bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white"
@@ -470,14 +507,31 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBackToPortfolio }) => {
                       <input
                         type="text"
                         placeholder="Technologies (comma-separated)"
-                        value={editingProject.tech.join(", ")}
+                        value={editingTechInput}
+                        onChange={(e) => setEditingTechInput(e.target.value)}
+                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white"
+                      />
+                      {/* Add demoUrl and sourceUrl fields */}
+                      <input
+                        type="url"
+                        placeholder="Demo URL (optional)"
+                        value={editingProject.demoUrl || ""}
                         onChange={(e) =>
                           setEditingProject({
                             ...editingProject,
-                            tech: e.target.value
-                              .split(",")
-                              .map((t) => t.trim())
-                              .filter((t) => t),
+                            demoUrl: e.target.value,
+                          })
+                        }
+                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white"
+                      />
+                      <input
+                        type="url"
+                        placeholder="Source URL (optional)"
+                        value={editingProject.sourceUrl || ""}
+                        onChange={(e) =>
+                          setEditingProject({
+                            ...editingProject,
+                            sourceUrl: e.target.value,
                           })
                         }
                         className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white"
@@ -504,7 +558,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBackToPortfolio }) => {
                       </div>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => updateProject(editingProject)}
+                          onClick={() =>
+                            editingProject &&
+                            typeof editingProject.id === "number" &&
+                            updateProject(editingProject)
+                          }
                           className="flex items-center gap-2 bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition-colors"
                         >
                           <Save className="w-4 h-4" />
@@ -557,7 +615,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBackToPortfolio }) => {
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-2 mb-4">
-                        {project.tech.map((tech, i) => (
+                        {(typeof project.tech === "string"
+                          ? project.tech
+                              .split(",")
+                              .map((t) => t.trim())
+                              .filter((t) => t)
+                          : Array.isArray(project.tech)
+                          ? project.tech
+                          : []
+                        ).map((tech, i) => (
                           <span
                             key={i}
                             className="px-2 py-1 bg-blue-900 text-blue-200 rounded text-sm"

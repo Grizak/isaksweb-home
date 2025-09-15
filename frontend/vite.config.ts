@@ -8,7 +8,7 @@ export default defineConfig({
     proxy: {
       "/api": {
         changeOrigin: true,
-        target: "https://urban-palm-tree-9pgwrx4qp57c7p67-3000.app.github.dev",
+        target: "http://localhost:3000",
       },
     },
   },

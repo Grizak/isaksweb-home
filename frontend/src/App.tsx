@@ -511,6 +511,7 @@ const DeveloperShowcase: React.FC = () => {
             <a
               href="mailto:isak@isaksweb.xyz"
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg transition-colors"
+              target="_blank"
             >
               <Mail className="w-5 h-5" />
               Get In Touch
@@ -518,6 +519,7 @@ const DeveloperShowcase: React.FC = () => {
             <a
               href="https://github.com/Grizak"
               className="flex items-center gap-2 border border-gray-600 hover:border-gray-500 px-6 py-3 rounded-lg transition-colors"
+              target="_blank"
             >
               <Github className="w-5 h-5" />
               GitHub
