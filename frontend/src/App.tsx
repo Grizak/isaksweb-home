@@ -10,9 +10,9 @@ import {
   Settings,
 } from "lucide-react";
 import axios from "axios";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { Login } from "./components/Login";
 import { Dashboard } from "./components/Dashboard";
+import { useAuth } from "./contexts/AuthContext";
 
 interface Project {
   id: number;

@@ -246,6 +246,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBackToPortfolio }) => {
 
       {/* Main Content */}
       <div className="ml-64 p-8">
+        {/* Back to Portfolio Button */}
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={onBackToPortfolio}
+            className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg transition-colors text-white"
+          >
+            Back to Portfolio
+          </button>
+        </div>
+
         {/* Overview Tab */}
         {activeTab === "overview" && (
           <div>
