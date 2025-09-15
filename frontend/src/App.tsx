@@ -7,8 +7,12 @@ import {
   Book,
   Headphones,
   Apple,
+  Settings,
 } from "lucide-react";
 import axios from "axios";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { Login } from "./components/Login";
+import { Dashboard } from "./components/Dashboard";
 
 interface Project {
   id: number;
@@ -33,13 +37,23 @@ interface BackendResponse {
   techs: string[];
 }
 
+type AppView = "portfolio" | "login" | "dashboard";
+
 const DeveloperShowcase: React.FC = () => {
   const [typedText, setTypedText] = useState("");
   const [currentProjectFilter, setCurrentProjectFilter] = useState("all");
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [currentlyLearning, setCurrentlyLearning] = useState<string[]>([]);
   const [, setError] = useState<string | null>(null);
-  const [techs, setTechs] = useState<string[]>(["all", "react", "typescript", "node"]);
+  const [techs, setTechs] = useState<string[]>([
+    "all",
+    "react",
+    "typescript",
+    "node",
+  ]);
+  const [view, setView] = useState<AppView>("portfolio");
+
+  const { isAuthenticated } = useAuth();
 
   const fullText = `const developer = {
   name: "Isak Grönlund",
@@ -93,21 +107,24 @@ const DeveloperShowcase: React.FC = () => {
     (async () => {
       try {
         const res = await axios.get<BackendResponse>("/api/data");
-        
+
         if (res.status !== 200) {
           setError("Unexpected error occurred when loading page");
           return;
         }
-        
+
         // Only update if we have data, otherwise keep existing state
         if (res.data.skills && res.data.skills.length > 0) {
           setSkills(res.data.skills);
         }
-        
-        if (res.data.currentlyLearning && res.data.currentlyLearning.length > 0) {
+
+        if (
+          res.data.currentlyLearning &&
+          res.data.currentlyLearning.length > 0
+        ) {
           setCurrentlyLearning(res.data.currentlyLearning);
         }
-        
+
         if (res.data.projects && res.data.projects.length > 0) {
           setProjects(res.data.projects);
         }
@@ -124,10 +141,10 @@ const DeveloperShowcase: React.FC = () => {
   useEffect(() => {
     let i = 0;
     let isCancelled = false;
-  
+
     const typeChar = () => {
       if (isCancelled || i >= fullText.length) return;
-  
+
       // Simulate rare mistake (backspace + retry)
       if (Math.random() < 0.01 && i > 0) {
         setTypedText((prev) => prev.slice(0, -1));
@@ -135,28 +152,28 @@ const DeveloperShowcase: React.FC = () => {
         setTimeout(typeChar, 250 + Math.random() * 200);
         return;
       }
-  
+
       setTypedText((prev) => prev + fullText[i]);
       i++;
-  
+
       // Base typing delay
       let delay = 30 + Math.random() * 100;
-  
+
       // Longer pause at punctuation
       if ([",", ".", ";", ":", "?", "!"].includes(fullText[i - 1])) {
         delay = 250 + Math.random() * 300;
       }
-  
+
       // Burst typing (clusters)
       if (i % (Math.floor(Math.random() * 5) + 3) === 0) {
         delay = 150 + Math.random() * 200;
       }
-  
+
       setTimeout(typeChar, delay);
     };
-  
+
     typeChar();
-  
+
     return () => {
       isCancelled = true; // cleanup
     };
@@ -166,30 +183,30 @@ const DeveloperShowcase: React.FC = () => {
     if (currentProjectFilter === "all") {
       return projects;
     }
-    
+
     return projects.filter((project) =>
-      project.tech.some((tech) => 
-        tech.toLowerCase() === currentProjectFilter.toLowerCase()
+      project.tech.some(
+        (tech) => tech.toLowerCase() === currentProjectFilter.toLowerCase()
       )
     );
   }, [projects, currentProjectFilter]);
 
-// Better tech filter generation from actual project data
-useEffect(() => {
-  if (projects.length > 0) {
-    // Extract unique technologies from all projects
-    const uniqueTechs = Array.from(
-      new Set(
-        projects.flatMap(project => 
-          project.tech.map(tech => tech.toLowerCase())
+  // Better tech filter generation from actual project data
+  useEffect(() => {
+    if (projects.length > 0) {
+      // Extract unique technologies from all projects
+      const uniqueTechs = Array.from(
+        new Set(
+          projects.flatMap((project) =>
+            project.tech.map((tech) => tech.toLowerCase())
+          )
         )
-      )
-    ).sort();
-    
-    // Add "all" as first option and update techs
-    setTechs(["all", ...uniqueTechs]);
-  }
-}, [projects]);
+      ).sort();
+
+      // Add "all" as first option and update techs
+      setTechs(["all", ...uniqueTechs]);
+    }
+  }, [projects]);
 
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light");
@@ -201,12 +218,22 @@ useEffect(() => {
         <h3 className="text-xl font-semibold text-white">{project.title}</h3>
         <div className="flex gap-2">
           {project.demoUrl && (
-            <button className="text-gray-400 hover:text-blue-400 transition-colors cursor-pointer" onClick={() => project.demoUrl && window.open(project.demoUrl, "_blank")}>
+            <button
+              className="text-gray-400 hover:text-blue-400 transition-colors cursor-pointer"
+              onClick={() =>
+                project.demoUrl && window.open(project.demoUrl, "_blank")
+              }
+            >
               <ExternalLink className="w-5 h-5" />
             </button>
           )}
           {project.sourceUrl && (
-            <button className="text-gray-400 hover:text-green-400 transition-colors cursor-pointer" onClick={() => project.sourceUrl && window.open(project.sourceUrl, "_blank")}>
+            <button
+              className="text-gray-400 hover:text-green-400 transition-colors cursor-pointer"
+              onClick={() =>
+                project.sourceUrl && window.open(project.sourceUrl, "_blank")
+              }
+            >
               <Github className="w-5 h-5" />
             </button>
           )}
@@ -243,6 +270,16 @@ useEffect(() => {
     </div>
   );
 
+  // Handle different views
+  if (view === "login") {
+    return <Login onSuccess={() => setView("dashboard")} />;
+  }
+
+  if (view === "dashboard" && isAuthenticated) {
+    return <Dashboard onBackToPortfolio={() => setView("portfolio")} />;
+  }
+
+  // Main portfolio view
   return (
     <div
       className={`min-h-screen transition-colors duration-300 ${
@@ -285,6 +322,13 @@ useEffect(() => {
             >
               Contact
             </a>
+            <button
+              onClick={() => setView("login")}
+              className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
+              title="Dashboard"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
             <button
               onClick={toggleTheme}
               className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
