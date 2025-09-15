@@ -676,5 +676,3 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBackToPortfolio }) => {
     </div>
   );
 };
-
-            onClick
