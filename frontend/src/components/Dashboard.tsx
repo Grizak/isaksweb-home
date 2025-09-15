@@ -12,7 +12,6 @@ import {
   Trash2,
   Star,
   ExternalLink,
-  Github,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import axios from "axios";
@@ -37,7 +36,6 @@ interface DashboardStats {
   totalProjects: number;
   featuredProjects: number;
   totalSkills: number;
-  githubRepos: number;
 }
 
 interface DashboardData {
@@ -249,7 +247,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBackToPortfolio }) => {
               <h2 className="text-3xl font-bold">Dashboard Overview</h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
                 <div className="flex items-center justify-between">
                   <div>
@@ -283,18 +281,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBackToPortfolio }) => {
                     </p>
                   </div>
                   <Settings className="w-8 h-8 text-green-400" />
-                </div>
-              </div>
-
-              <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-400 text-sm">GitHub Repos</p>
-                    <p className="text-2xl font-bold text-white">
-                      {data.stats.githubRepos}
-                    </p>
-                  </div>
-                  <Github className="w-8 h-8 text-purple-400" />
                 </div>
               </div>
             </div>
@@ -565,7 +551,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBackToPortfolio }) => {
                               rel="noopener noreferrer"
                               className="text-green-400 hover:text-green-300"
                             >
-                              <Github className="w-4 h-4" />
+                              <ExternalLink className="w-4 h-4" />
                             </a>
                           )}
                         </div>

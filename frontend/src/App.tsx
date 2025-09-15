@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
-  Github,
-  ExternalLink,
-  Mail,
   Star,
   Book,
   Headphones,
   Apple,
   Settings,
+  ExternalLink,
+  Github,
+  Mail,
 } from "lucide-react";
 import axios from "axios";
 import { Login } from "./components/Login";
