@@ -27,7 +27,7 @@ interface Project {
 interface Skill {
   name: string;
   level: number;
-  category: "frontend" | "backend" | "tools" | "database";
+  category: "frontend" | "backend" | "tools" | "database" | "other";
 }
 
 interface BackendResponse {
@@ -54,14 +54,6 @@ const DeveloperShowcase: React.FC = () => {
   const [view, setView] = useState<AppView>("portfolio");
 
   const { isAuthenticated } = useAuth();
-
-  const fullText = `const developer = {
-  name: "Isak Grönlund",
-  role: "Full Stack Developer",
-  passion: "Building amazing web experiences",
-  specialties: ["TypeScript", "React", "Node.js"],
-  packageManager: "pnpm" // because it's faster! 🚀
-};`;
 
   const [projects, setProjects] = useState<Project[]>([]);
 
@@ -96,12 +88,17 @@ const DeveloperShowcase: React.FC = () => {
       level: 95,
       category: "backend",
     },
-    {
-      name: "Typescript",
-      level: 90,
-      category: "tools",
-    },
   ]);
+
+  const fullText = `const developer = {
+  name: "Isak Grönlund",
+  role: "Full Stack Developer",
+  passion: "Building amazing web experiences",
+  specialties: [
+    ${skills.map((t) => `"${t.name}"`).join(",\n    ")},
+  ],
+  packageManager: "pnpm" // because it's faster! 🚀
+};`;
 
   useEffect(() => {
     (async () => {
@@ -132,7 +129,7 @@ const DeveloperShowcase: React.FC = () => {
         if (res.data.techs && res.data.techs.length > 0) {
           setTechs(res.data.techs);
         }
-      } catch (error) {
+      } catch {
         setError("Failed to load data");
       }
     })();
@@ -141,32 +138,25 @@ const DeveloperShowcase: React.FC = () => {
   useEffect(() => {
     let i = 0;
     let isCancelled = false;
+    setTypedText(fullText[0]);
 
     const typeChar = () => {
-      if (isCancelled || i >= fullText.length) return;
-
-      // Simulate rare mistake (backspace + retry)
-      if (Math.random() < 0.01 && i > 0) {
-        setTypedText((prev) => prev.slice(0, -1));
-        i--; // move cursor back
-        setTimeout(typeChar, 250 + Math.random() * 200);
-        return;
-      }
+      if (isCancelled || i + 1 >= fullText.length) return;
 
       setTypedText((prev) => prev + fullText[i]);
       i++;
 
       // Base typing delay
-      let delay = 30 + Math.random() * 100;
+      let delay = 10 + Math.random() * 100;
 
       // Longer pause at punctuation
-      if ([",", ".", ";", ":", "?", "!"].includes(fullText[i - 1])) {
+      if ([",", ".", ";", ":", "?", "!"].includes(fullText[i])) {
         delay = 250 + Math.random() * 300;
       }
 
-      // Burst typing (clusters)
-      if (i % (Math.floor(Math.random() * 5) + 3) === 0) {
-        delay = 150 + Math.random() * 200;
+      // Type any long set of spaces quickly
+      if (fullText[i] === " ") {
+        delay = 1;
       }
 
       setTimeout(typeChar, delay);

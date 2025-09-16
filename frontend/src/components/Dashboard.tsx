@@ -29,7 +29,7 @@ interface Project {
 interface Skill {
   name: string;
   level: number;
-  category: "frontend" | "backend" | "tools" | "database";
+  category: "frontend" | "backend" | "tools" | "database" | "other";
 }
 
 interface DashboardStats {
@@ -714,6 +714,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBackToPortfolio }) => {
                           <option value="backend">Backend</option>
                           <option value="tools">Tools</option>
                           <option value="database">Database</option>
+                          <option value="other">Other</option>
                         </select>
                         <button
                           onClick={() => {
@@ -731,9 +732,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBackToPortfolio }) => {
                     <button
                       onClick={() => {
                         const newSkill: Skill = {
-                          name: "New Skill",
+                          name: "",
                           level: 50,
-                          category: "frontend",
+                          category: "other",
                         };
                         setData({
                           ...data,
@@ -794,16 +795,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBackToPortfolio }) => {
                     <textarea
                       value={data.currentlyLearning.join("\n")}
                       onChange={(e) => {
-                        const newLearning = e.target.value
-                          .split("\n")
-                          .filter((item) => item.trim());
+                        const newLearning = e.target.value.split("\n");
                         setData({ ...data, currentlyLearning: newLearning });
                       }}
                       className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white h-32 resize-none"
                       placeholder="Enter each technology on a new line"
                     />
                     <button
-                      onClick={() => updateLearning(data.currentlyLearning)}
+                      onClick={() =>
+                        updateLearning(
+                          data.currentlyLearning.filter((t) => t.trim() !== "")
+                        )
+                      }
                       className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors"
                     >
                       <Save className="w-4 h-4" />

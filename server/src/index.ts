@@ -1,8 +1,71 @@
+console.time("Total startup time");
 import express, { Request, Response } from "express";
 import path from "path";
+import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
 
 // Load environment variables
-import "dotenv/config";
+dotenv.config();
+
+// ---------------- Configuration variables ----------------
+let isReady = false;
+
+// ---------------- MongoDB Connection ----------------
+
+const MONGODB_URI =
+  process.env.MONGO_URI || "mongodb://localhost:27017/portfolio";
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+
+console.time("MongoDB connection");
+mongoose
+  .connect(MONGODB_URI)
+  .then(() => {
+    console.log("Connected to MongoDB");
+    console.timeEnd("MongoDB connection");
+  })
+  .catch((error) => console.error("MongoDB connection error:", error));
+
+// ---------------- Mongoose Schemas ----------------
+
+const projectSchema = new mongoose.Schema(
+  {
+    id: { type: Number, unique: true, required: true },
+    title: { type: String, required: true },
+    description: { type: String, default: null },
+    tech: [{ type: String }],
+    demoUrl: { type: String },
+    sourceUrl: { type: String },
+    featured: { type: Boolean, default: false },
+  },
+  { timestamps: true }
+);
+
+const skillSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    level: { type: Number, required: true, min: 0, max: 100 },
+    category: {
+      type: String,
+      required: true,
+      enum: ["frontend", "backend", "tools", "database", "other"],
+    },
+  },
+  { timestamps: true }
+);
+
+const settingsSchema = new mongoose.Schema(
+  {
+    key: { type: String, required: true, unique: true },
+    value: { type: mongoose.Schema.Types.Mixed, required: true },
+  },
+  { timestamps: true }
+);
+
+// Models
+const Project = mongoose.model("Project", projectSchema);
+const Skill = mongoose.model("Skill", skillSchema);
+const Settings = mongoose.model("Settings", settingsSchema);
 
 // ---------------- Interfaces ----------------
 
@@ -19,7 +82,7 @@ interface Project {
 interface Skill {
   name: string;
   level: number;
-  category: "frontend" | "backend" | "tools" | "database";
+  category: "frontend" | "backend" | "tools" | "database" | "other";
 }
 
 interface LoginRequest {
@@ -33,77 +96,99 @@ interface AuthResponse {
   message?: string;
 }
 
-// ---------------- Authentication ----------------
+// ---------------- Database Helpers ----------------
 
-// Simple token store (in production, use proper session management)
-// TODO: Replace with a proper database in the future
-const activeSessions = new Set<string>();
+async function initializeDefaultData() {
+  try {
+    // Initialize default skills if none exist
+    const skillCount = await Skill.countDocuments();
+    if (skillCount === 0) {
+      const defaultSkills = [
+        { name: "TypeScript", level: 95, category: "frontend" as const },
+        { name: "React", level: 90, category: "frontend" as const },
+        { name: "Node.js", level: 85, category: "backend" as const },
+        { name: "MongoDB", level: 80, category: "database" as const },
+        { name: "TailwindCSS", level: 88, category: "frontend" as const },
+        { name: "Express.js", level: 95, category: "backend" as const },
+      ];
+      await Skill.insertMany(defaultSkills);
+      console.log("Default skills created");
+    }
 
-function generateToken(): string {
-  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+    // Initialize currently learning if not set
+    const currentlyLearning = await Settings.findOne({
+      key: "currentlyLearning",
+    });
+    if (!currentlyLearning) {
+      await Settings.create({
+        key: "currentlyLearning",
+        value: ["Typescript", "React", "TailwindCSS"],
+      });
+      console.log("Currently learning initialized");
+    }
+  } catch (error) {
+    console.error("Error initializing default data:", error);
+  }
 }
 
-function isValidToken(token: string): boolean {
-  return activeSessions.has(token);
+// Get next project ID
+async function getNextProjectId(): Promise<number> {
+  const lastProject = await Project.findOne().sort({ id: -1 });
+  return lastProject ? lastProject.id + 1 : 1;
+}
+
+// ---------------- Authentication ----------------
+
+function generateToken(): string {
+  return jwt.sign({ authenticated: true }, JWT_SECRET, { expiresIn: "24h" });
+}
+
+async function verifyToken(token: string): Promise<boolean> {
+  try {
+    jwt.verify(token, JWT_SECRET);
+    return true;
+  } catch (error) {
+    return false;
+  }
 }
 
 // Middleware to check authentication
-function requireAuth(req: Request, res: Response, next: Function) {
+async function requireAuth(req: Request, res: Response, next: Function) {
   const token = req.headers.authorization?.replace("Bearer ", "");
 
-  if (!token || !isValidToken(token)) {
-    return res.status(401).json({ success: false, message: "Unauthorized" });
+  if (!token) {
+    return res
+      .status(401)
+      .json({ success: false, message: "No token provided" });
+  }
+
+  const isValid = await verifyToken(token);
+  if (!isValid) {
+    return res.status(401).json({ success: false, message: "Invalid token" });
   }
 
   next();
 }
 
-// ---------------- Data ----------------
-
-const techs: string[] = ["all"];
-let nextId = 1; // numeric ID generator
-
-// In-memory data store for dashboard modifications
-let dashboardProjects: Project[] = [];
-let dashboardSkills: Skill[] = [
-  {
-    name: "TypeScript",
-    level: 95,
-    category: "frontend",
-  },
-  {
-    name: "React",
-    level: 90,
-    category: "frontend",
-  },
-  {
-    name: "Node.js",
-    level: 85,
-    category: "backend",
-  },
-  {
-    name: "MongoDB",
-    level: 80,
-    category: "database",
-  },
-  {
-    name: "TailwindCSS",
-    level: 88,
-    category: "frontend",
-  },
-  {
-    name: "Express.js",
-    level: 95,
-    category: "backend",
-  },
-];
-
-let currentlyLearning: string[] = ["Typescript", "React", "TailwindCSS"];
-
 // ---------------- Express ----------------
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
+
+app.get("/favicon.ico", (req: Request, res: Response) => {
+  res.sendFile(path.join(process.cwd(), "frontend", "favicon.jpg"));
+});
+
+app.use((req, res, next) => {
+  if (!isReady) {
+    res.setHeader("Retry-After", "10"); // Suggest client to retry after 10 seconds
+    return res.status(503).json({
+      success: false,
+      message: "Server is initializing, please try again later.",
+    });
+  }
+  next();
+});
 
 // Middleware
 app.use(express.json());
@@ -111,101 +196,132 @@ app.use(express.static(path.join(process.cwd(), "frontend")));
 
 // ---------------- Auth Routes ----------------
 
-app.post("/api/auth/login", (req: Request, res: Response) => {
-  const { username, password } = req.body as LoginRequest;
+app.post("/api/auth/login", async (req: Request, res: Response) => {
+  try {
+    const { username, password } = req.body as LoginRequest;
 
-  const adminUsername = process.env.ADMIN_USERNAME || "admin";
-  const adminPassword = process.env.ADMIN_PASSWORD || "password";
+    const adminUsername = process.env.ADMIN_USERNAME || "admin";
+    const adminPassword = process.env.ADMIN_PASSWORD || "password";
 
-  if (username === adminUsername && password === adminPassword) {
-    const token = generateToken();
-    activeSessions.add(token);
-
-    // Remove token after 24 hours
-    setTimeout(() => {
-      activeSessions.delete(token);
-    }, 24 * 60 * 60 * 1000);
-
-    res.json({ success: true, token } as AuthResponse);
-  } else {
-    res
-      .status(401)
-      .json({ success: false, message: "Invalid credentials" } as AuthResponse);
+    if (username === adminUsername && password === adminPassword) {
+      const token = generateToken();
+      res.json({ success: true, token } as AuthResponse);
+    } else {
+      res.status(401).json({
+        success: false,
+        message: "Invalid credentials",
+      } as AuthResponse);
+    }
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    } as AuthResponse);
   }
 });
 
 app.post("/api/auth/logout", (req: Request, res: Response) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-
-  if (token) {
-    activeSessions.delete(token);
-  }
-
+  // With JWT, logout is handled client-side by removing the token
   res.json({ success: true });
 });
 
-app.get("/api/auth/verify", (req: Request, res: Response) => {
+app.get("/api/auth/verify", async (req: Request, res: Response) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
 
-  if (token && isValidToken(token)) {
-    res.json({ success: true, valid: true });
-  } else {
-    res.json({ success: true, valid: false });
+  if (!token) {
+    return res.json({ success: true, valid: false });
   }
+
+  const isValid = await verifyToken(token);
+  res.json({ success: true, valid: isValid });
 });
 
 // ---------------- Public API Routes ----------------
 
-app.get("/api/data", (req: Request, res: Response) => {
-  const JsonResponse: {
-    currentlyLearning: string[];
-    projects: Project[];
-    skills: Skill[];
-    techs: string[];
-  } = {
-    currentlyLearning,
-    projects: [...dashboardProjects],
-    skills: [...dashboardSkills],
-    techs,
-  };
-  res.json(JsonResponse);
+app.get("/api/data", async (req: Request, res: Response) => {
+  try {
+    const [projects, skills, currentlyLearningSetting] = await Promise.all([
+      Project.find().select("-_id -__v -createdAt -updatedAt"),
+      Skill.find().select("-_id -__v -createdAt -updatedAt"),
+      Settings.findOne({ key: "currentlyLearning" }),
+    ]);
+
+    const techs = ["all"]; // You might want to generate this dynamically from projects
+    const currentlyLearning = currentlyLearningSetting?.value || [];
+
+    const JsonResponse = {
+      currentlyLearning,
+      projects,
+      skills,
+      techs,
+    };
+    res.json(JsonResponse);
+  } catch (error) {
+    console.error("Error fetching public data:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // ---------------- Dashboard API Routes ----------------
 
 // Get dashboard data (protected)
-app.get("/api/dashboard/data", requireAuth, (req: Request, res: Response) => {
-  res.json({
-    projects: dashboardProjects,
-    skills: dashboardSkills,
-    currentlyLearning,
-    stats: {
-      totalProjects: dashboardProjects.length,
-      featuredProjects: dashboardProjects.filter((p) => p.featured).length,
-      totalSkills: dashboardSkills.length,
-    },
-  });
-});
+app.get(
+  "/api/dashboard/data",
+  requireAuth,
+  async (req: Request, res: Response) => {
+    try {
+      const [projects, skills, currentlyLearningSetting] = await Promise.all([
+        Project.find().select("-_id -__v -createdAt -updatedAt"),
+        Skill.find().select("-_id -__v -createdAt -updatedAt"),
+        Settings.findOne({ key: "currentlyLearning" }),
+      ]);
+
+      const currentlyLearning = currentlyLearningSetting?.value || [];
+
+      res.json({
+        projects,
+        skills,
+        currentlyLearning,
+        stats: {
+          totalProjects: projects.length,
+          featuredProjects: projects.filter((p: any) => p.featured).length,
+          totalSkills: skills.length,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
 
 // Update project (protected)
 app.put(
   "/api/dashboard/projects/:id",
   requireAuth,
-  (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
-    const projectIndex = dashboardProjects.findIndex((p) => p.id === id);
+  async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updatedProject = await Project.findOneAndUpdate(
+        { id },
+        { ...req.body },
+        { new: true, runValidators: true }
+      ).select("-_id -__v -createdAt -updatedAt");
 
-    if (projectIndex === -1) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Project not found" });
+      if (!updatedProject) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Project not found" });
+      }
+
+      res.json({ success: true, project: updatedProject });
+    } catch (error) {
+      console.error("Error updating project:", error);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
     }
-
-    dashboardProjects[projectIndex] = {
-      ...dashboardProjects[projectIndex],
-      ...req.body,
-    };
-    res.json({ success: true, project: dashboardProjects[projectIndex] });
   }
 );
 
@@ -213,14 +329,28 @@ app.put(
 app.post(
   "/api/dashboard/projects",
   requireAuth,
-  (req: Request, res: Response) => {
-    const newProject: Project = {
-      id: Math.max(...dashboardProjects.map((p) => p.id)) + 1,
-      ...req.body,
-    };
+  async (req: Request, res: Response) => {
+    try {
+      const nextId = await getNextProjectId();
+      const newProject = new Project({
+        id: nextId,
+        ...req.body,
+      });
 
-    dashboardProjects.push(newProject);
-    res.json({ success: true, project: newProject });
+      await newProject.save();
+
+      // Fetch the saved project with selected fields only
+      const savedProject = await Project.findOne({ id: nextId }).select(
+        "-_id -__v -createdAt -updatedAt"
+      );
+
+      res.json({ success: true, project: savedProject });
+    } catch (error) {
+      console.error("Error creating project:", error);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
   }
 );
 
@@ -228,34 +358,72 @@ app.post(
 app.delete(
   "/api/dashboard/projects/:id",
   requireAuth,
-  (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
-    const projectIndex = dashboardProjects.findIndex((p) => p.id === id);
+  async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deletedProject = await Project.findOneAndDelete({ id });
 
-    if (projectIndex === -1) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Project not found" });
+      if (!deletedProject) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Project not found" });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
     }
-
-    dashboardProjects.splice(projectIndex, 1);
-    res.json({ success: true });
   }
 );
 
 // Update skills (protected)
-app.put("/api/dashboard/skills", requireAuth, (req: Request, res: Response) => {
-  dashboardSkills = req.body.skills;
-  res.json({ success: true, skills: dashboardSkills });
-});
+app.put(
+  "/api/dashboard/skills",
+  requireAuth,
+  async (req: Request, res: Response) => {
+    try {
+      // Clear existing skills and insert new ones
+      await Skill.deleteMany({});
+      await Skill.insertMany(req.body.skills);
+
+      const updatedSkills = await Skill.find().select(
+        "-_id -__v -createdAt -updatedAt"
+      );
+      res.json({ success: true, skills: updatedSkills });
+    } catch (error) {
+      console.error("Error updating skills:", error);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  }
+);
 
 // Update currently learning (protected)
 app.put(
   "/api/dashboard/learning",
   requireAuth,
-  (req: Request, res: Response) => {
-    currentlyLearning = req.body.currentlyLearning;
-    res.json({ success: true, currentlyLearning });
+  async (req: Request, res: Response) => {
+    try {
+      await Settings.findOneAndUpdate(
+        { key: "currentlyLearning" },
+        { value: req.body.currentlyLearning },
+        { upsert: true }
+      );
+
+      res.json({
+        success: true,
+        currentlyLearning: req.body.currentlyLearning,
+      });
+    } catch (error) {
+      console.error("Error updating currently learning:", error);
+      res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
   }
 );
 
@@ -267,11 +435,17 @@ app.use((req: Request, res: Response) => {
 
 // ---------------- Start ----------------
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Express app listening on port ${PORT}`);
-  console.log(
-    `Dashboard credentials: ${process.env.ADMIN_USERNAME || "admin"} / ${
-      process.env.ADMIN_PASSWORD || "password"
-    }`
-  );
+
+  console.timeEnd("Total startup time");
+
+  // Wait a moment to ensure MongoDB connection is established
+  await new Promise((resolve) => setTimeout(resolve, 10000));
+
+  // Initialize default data
+  await initializeDefaultData();
+
+  console.log("Server ready with MongoDB integration");
+  isReady = true;
 });
