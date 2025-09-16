@@ -147,7 +147,7 @@ const DeveloperShowcase: React.FC = () => {
       i++;
 
       // Base typing delay
-      let delay = 10 + Math.random() * 100;
+      let delay = 40 + Math.random() * 100;
 
       // Longer pause at punctuation
       if ([",", ".", ";", ":", "?", "!"].includes(fullText[i])) {
