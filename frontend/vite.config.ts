@@ -11,6 +11,12 @@ export default defineConfig({
         target: "http://localhost:3000",
       },
     },
+    headers: {
+      // Set some headers to avoid cache issues in browsers
+      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      Pragma: "no-cache",
+      Expires: "0",
+    },
   },
   build: {
     outDir: "../server/frontend",

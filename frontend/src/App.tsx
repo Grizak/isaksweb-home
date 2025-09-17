@@ -382,7 +382,7 @@ const DeveloperShowcase: React.FC = () => {
           <h2 className="text-3xl font-bold text-center mb-12">
             Skills & Technologies
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div>
               <h3 className="text-xl font-semibold mb-6 text-blue-400">
                 Frontend
@@ -411,6 +411,16 @@ const DeveloperShowcase: React.FC = () => {
               </h3>
               {skills
                 .filter((s) => s.category === "database")
+                .map((skill, i) => (
+                  <SkillBar key={i} skill={skill} />
+                ))}
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold mb-6 text-cyan-400">
+                Other
+              </h3>
+              {skills
+                .filter((s) => s.category === "other")
                 .map((skill, i) => (
                   <SkillBar key={i} skill={skill} />
                 ))}
